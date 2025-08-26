@@ -18,7 +18,10 @@ Sitemap URL → Scraper (Firecrawl) → Content Processor → Image Generator (f
 ### Key Components
 - **Sitemap Processor**: Parses XML sitemaps, extracts URLs, manages processing state
 - **Content Scraper**: Uses Firecrawl MCP for intelligent extraction of titles, descriptions, metadata
-- **Image Generator**: Integrates fal.ai FLUX.1 models for Pinterest-optimized image generation (1000x1500px)
+- **Image Generator**: Multi-model fal.ai integration for varied output:
+  - FLUX.1 dev: Photorealistic images (40% weight)
+  - Qwen-Image: Superior text rendering (30% weight)
+  - Ideogram V2: Typography & posters (30% weight)
 - **Postiz Scheduler**: Manages post scheduling via Postiz API with rate limiting and retry logic
 
 ## Development Commands
@@ -98,10 +101,14 @@ src/
 - Built-in AI-powered content understanding
 
 ### Image Generation Strategy
-- Use fal.ai FLUX.1 dev model ($0.025/megapixel)
+- Multi-model approach for output variety:
+  - FLUX.1 dev: $0.025/megapixel - photorealistic content
+  - Qwen-Image: ~$0.020/megapixel - text-heavy designs
+  - Ideogram V2: ~$0.030/megapixel - typography/posters
+- Weighted random selection with content-based preferences
 - Generate Pinterest-optimized 2:3 aspect ratio (1000x1500px)
-- Cache successful prompts for consistency
-- Implement retry with simpler prompts on failure
+- Cache successful prompts per model for consistency
+- Implement fallback chain: primary model → secondary → tertiary
 
 ### Scheduling Logic
 - Process sitemap every 6 hours
@@ -128,12 +135,27 @@ await withRetry(() => postiz.post({
 
 ### fal.ai Image Generation
 ```typescript
-// Use FLUX.1 dev for best quality/cost ratio
-const response = await fal.run("fal-ai/flux/dev", {
-  prompt: generatePinterestPrompt(content),
+// Multi-model selection with weighted random
+const models = [
+  { id: "fal-ai/flux/dev", weight: 0.4, type: "photorealistic" },
+  { id: "fal-ai/qwen-image", weight: 0.3, type: "text-heavy" },
+  { id: "fal-ai/ideogram/v2", weight: 0.3, type: "typography" }
+];
+
+// Select model based on content or random weight
+const selectedModel = selectModelByContent(content) || weightedRandom(models);
+
+// Generate with model-specific prompts
+const response = await fal.run(selectedModel.id, {
+  prompt: generateOptimizedPrompt(content, selectedModel.type),
   image_size: "portrait_4_5", // Pinterest optimal
   num_images: 1
 });
+
+// Fallback on failure
+if (!response.success && fallbackModels.length > 0) {
+  return await tryFallbackModel(fallbackModels, content);
+}
 ```
 
 ### Firecrawl Scraping
@@ -199,6 +221,44 @@ Use Miniflare for local Worker environment simulation
 - Cloudflare Analytics for performance metrics
 - Logflare/Baselime for structured logging
 - Custom KV metrics for business logic
+
+## Model-Specific Implementation Notes
+
+### Qwen-Image Optimizations
+- Best for pins with quotes, tips, or lists
+- Excels at maintaining font consistency in edits
+- Supports nuanced art style specifications
+- Use for "how-to" infographics with text steps
+
+### Ideogram V2 Optimizations
+- Ideal for logo-style pins and brand content
+- Superior typography handling for titles
+- Best for poster-style layouts
+- Use "auto" style parameter for balanced output
+
+### FLUX.1 Dev Optimizations
+- Best for product photography pins
+- Excellent for lifestyle and scenery backgrounds
+- Use detailed prompts for best results
+- Add "8k resolution, professional photography" to prompts
+
+### Model Rotation Strategy
+```typescript
+// Track model usage to ensure variety
+const modelUsageTracker = {
+  'fal-ai/flux/dev': 0,
+  'fal-ai/qwen-image': 0,
+  'fal-ai/ideogram/v2': 0
+};
+
+// Balance usage across models
+function selectNextModel() {
+  const leastUsed = Object.entries(modelUsageTracker)
+    .sort(([,a], [,b]) => a - b)[0][0];
+  modelUsageTracker[leastUsed]++;
+  return leastUsed;
+}
+```
 
 ## Common Tasks
 

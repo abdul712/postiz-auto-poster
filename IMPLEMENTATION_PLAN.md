@@ -20,10 +20,15 @@ An automated Pinterest scheduling application that scrapes website content from 
 - Generate content summaries using AI
 
 #### 3. **Image Generator** (`src/services/imageGenerator.ts`)
-- Integrate with fal.ai API (FLUX.1 models)
+- Integrate with multiple fal.ai models for variety:
+  - FLUX.1 dev - High-quality photorealistic images ($0.025/megapixel)
+  - Qwen-Image - Superior text rendering and art style understanding
+  - Ideogram V2 - Exceptional typography and logo/poster generation
+- Randomized model selection for output variety
 - Generate Pinterest-optimized images (1000x1500px)
-- Add text overlays with titles
+- Add text overlays with titles (leveraging Qwen for text-heavy designs)
 - Support brand consistency templates
+- Model-specific prompt optimization
 
 #### 4. **Pinterest Content Optimizer** (`src/services/pinterest.ts`)
 - Generate Pinterest-optimized descriptions
@@ -167,23 +172,28 @@ BRAND_FONTS=Arial,Helvetica
    - Content length optimization
 
 ### Phase 3: Image Generation (Week 3)
-1. **Day 15-16**: fal.ai integration
-   - API client setup
-   - Prompt engineering for Pinterest
-   - Image size optimization
-   - Error handling and retries
+1. **Day 15-16**: Multi-model fal.ai integration
+   - API client setup for FLUX.1, Qwen, and Ideogram
+   - Model selection algorithm (weighted random)
+   - Model-specific prompt engineering
+   - Error handling with fallback models
+   - Cost tracking per model
 
-2. **Day 17-18**: Template system
+2. **Day 17-18**: Advanced template system
    - Brand consistency templates
-   - Text overlay system
+   - Dynamic text overlay system:
+     - Qwen for text-heavy designs
+     - Ideogram for typography-focused pins
+     - FLUX for photorealistic backgrounds
    - Color scheme management
-   - Font selection logic
+   - Font selection based on model capabilities
 
-3. **Day 19-21**: Image optimization
+3. **Day 19-21**: Image optimization & variety
    - Pinterest aspect ratio (2:3)
    - File size optimization
-   - Quality settings
-   - Batch processing
+   - Quality settings per model
+   - Batch processing with model rotation
+   - A/B testing framework for model performance
 
 ### Phase 4: Scheduling & Automation (Week 4)
 1. **Day 22-23**: Scheduling logic
@@ -226,6 +236,65 @@ BRAND_FONTS=Arial,Helvetica
 // GET /api/stats
 // Analytics and performance metrics
 ```
+
+## Multi-Model Image Generation Strategy
+
+### Model Selection Algorithm
+```typescript
+interface ImageModel {
+  id: string;
+  weight: number;
+  strengths: string[];
+  costPerMegapixel: number;
+}
+
+const IMAGE_MODELS: ImageModel[] = [
+  {
+    id: 'fal-ai/flux/dev',
+    weight: 0.4, // 40% of generations
+    strengths: ['photorealistic', 'landscapes', 'products'],
+    costPerMegapixel: 0.025
+  },
+  {
+    id: 'fal-ai/qwen-image',
+    weight: 0.3, // 30% of generations
+    strengths: ['text-rendering', 'art-styles', 'typography'],
+    costPerMegapixel: 0.020 // estimated
+  },
+  {
+    id: 'fal-ai/ideogram/v2',
+    weight: 0.3, // 30% of generations
+    strengths: ['logos', 'posters', 'graphic-design'],
+    costPerMegapixel: 0.030 // estimated
+  }
+];
+```
+
+### Content-Based Model Selection
+1. **Text-Heavy Content**: Prioritize Qwen-Image for superior text rendering
+2. **Product Showcases**: Use FLUX.1 for photorealistic quality
+3. **Infographics/Posters**: Leverage Ideogram V2 for typography
+4. **Art/Creative**: Rotate between all models for variety
+5. **Fallback Strategy**: If one model fails, automatically try the next
+
+### Prompt Optimization Per Model
+```typescript
+// FLUX.1 - Focus on detailed descriptions
+const fluxPrompt = `${basePrompt}, ultra realistic, professional photography, 8k resolution`;
+
+// Qwen - Emphasize text and style
+const qwenPrompt = `${basePrompt}, clear text rendering, ${artStyle} style, high contrast`;
+
+// Ideogram - Typography and design focused
+const ideogramPrompt = `${basePrompt}, modern graphic design, bold typography, Pinterest aesthetic`;
+```
+
+### Performance Tracking
+- Track success rate per model
+- Monitor generation time per model
+- Calculate actual cost per model
+- A/B test engagement rates by model
+- Adjust weights based on performance metrics
 
 ## Scheduling Logic
 
@@ -390,8 +459,12 @@ crons = ["0 */6 * * *"]
 - Cloudflare Workers: Free tier (100k requests/day)
 - Cloudflare KV: Free tier (100k reads/day)
 - Cloudflare D1: Free tier (5GB storage)
-- fal.ai: ~$25/month (1000 images @ $0.025/megapixel)
+- fal.ai Image Generation (1000 images/month):
+  - FLUX.1 dev: ~$25 @ $0.025/megapixel (40% of generations)
+  - Qwen-Image: ~$20 estimated (30% of generations)
+  - Ideogram V2: ~$30 estimated (30% of generations)
+  - Total: ~$75/month for diverse image generation
 - Firecrawl: ~$50/month (depending on usage)
 - Postiz: Based on subscription plan
 
-Total: ~$75-150/month depending on volume
+Total: ~$125-200/month depending on volume and model usage
