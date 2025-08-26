@@ -1,82 +1,166 @@
-# Postiz Auto-Poster
+# Pinterest Auto-Poster
 
-An automated Pinterest content scheduling system that scrapes websites via sitemap, generates AI-powered images, and schedules posts through Postiz. Built on Cloudflare Workers for serverless execution.
+An automated Pinterest content scheduling system that scrapes websites via sitemap, generates AI images, and schedules posts through Postiz. Built for Cloudflare Workers with scheduled execution.
 
-## Features
+## 🚀 Features
 
-- 🕷️ **Automated Web Scraping**: Parses sitemaps and extracts content using Firecrawl
-- 🎨 **AI Image Generation**: Creates Pinterest-optimized images using fal.ai (FLUX.1)
-- 📅 **Smart Scheduling**: Automatically schedules posts via Postiz API
-- ⚡ **Serverless Architecture**: Runs on Cloudflare Workers with scheduled triggers
-- 🔄 **Reliable Processing**: Built-in retry logic and state management
-- 📊 **Pinterest Optimization**: Content and images tailored for Pinterest engagement
+- **Automated Content Discovery**: Scrapes sitemaps to find new content
+- **Multi-Model AI Image Generation**: Uses 3 fal.ai models for varied output
+  - FLUX.1 dev: Photorealistic images (40% weight)
+  - Qwen-Image: Superior text rendering (30% weight)
+  - Ideogram V2: Typography & posters (30% weight)
+- **Pinterest Optimization**: Generates Pinterest-friendly descriptions and hashtags
+- **Smart Scheduling**: Optimal posting times with rate limiting
+- **Content Quality Assessment**: Filters low-quality content automatically
+- **Performance Analytics**: Tracks model performance and costs
+- **Retry Logic**: Robust error handling with exponential backoff
 
-## Architecture
+## 🏗️ Architecture
 
 ```
-Sitemap → Firecrawl → Content Processing → fal.ai → Pinterest Optimizer → Postiz
-            ↓              ↓                 ↓              ↓               ↓
-      Cloudflare D1   Cloudflare KV    Image Cache    Queue System    Scheduler
+Sitemap URL → Scraper (Firecrawl) → Content Processor → Image Generator (fal.ai) → Pinterest Optimizer → Postiz Scheduler
+                                           ↓                      ↓                      ↓
+                                    Cloudflare D1          Cloudflare KV          Cloudflare Queue
 ```
 
-## Quick Start
+## 📦 Installation
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Cloudflare account
-- API keys for:
-  - Postiz
-  - fal.ai
-  - Firecrawl
+1. [Node.js](https://nodejs.org/) (18+ required)
+2. [Cloudflare account](https://cloudflare.com/) with Workers enabled
+3. API keys for:
+   - [Postiz](https://postiz.com/)
+   - [fal.ai](https://fal.ai/)
+   - [Firecrawl](https://firecrawl.dev/)
 
-### Installation
+### Local Setup
+
+1. **Clone and install dependencies**
+   ```bash
+   git clone <repository-url>
+   cd postiz-auto-poster
+   npm install
+   ```
+
+2. **Configure environment variables**
+   ```bash
+   cp .dev.vars.example .dev.vars
+   # Edit .dev.vars with your API keys
+   ```
+
+3. **Set up Cloudflare resources**
+   ```bash
+   # Create D1 database
+   npx wrangler d1 create postiz-auto-poster
+   
+   # Create KV namespaces
+   npx wrangler kv:namespace create CACHE
+   npx wrangler kv:namespace create PROMPTS
+   
+   # Create R2 bucket for images
+   npx wrangler r2 bucket create postiz-images
+   
+   # Create Queue for processing
+   npx wrangler queues create postiz-processing-queue
+   ```
+
+4. **Update wrangler.toml**
+   Update the IDs in `wrangler.toml` with the actual IDs from the previous step.
+
+5. **Run database migrations**
+   ```bash
+   npm run db:migrate
+   ```
+
+6. **Start local development**
+   ```bash
+   npm run dev
+   ```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Set these via `wrangler secret put <KEY>` for production or in `.dev.vars` for local development:
 
 ```bash
-# Clone the repository
-git clone https://github.com/abdul712/postiz-auto-poster.git
-cd postiz-auto-poster
+# Required API Keys
+POSTIZ_API_KEY=your_postiz_api_key
+FAL_API_KEY=your_fal_ai_api_key
+FIRECRAWL_API_KEY=your_firecrawl_api_key
 
-# Install dependencies
-npm install
+# Configuration
+SITEMAP_URL=https://example.com/sitemap.xml
+PINTEREST_BOARD_ID=your_pinterest_board_id
 
-# Configure environment variables
-cp .env.example .env
-# Edit .env with your API keys
-
-# Deploy to Cloudflare Workers
-npm run deploy
+# Optional
+POSTS_PER_DAY=5
+POSTING_HOURS=9,12,15,18,21
+POSTIZ_INSTANCE_URL=https://api.postiz.com
+BRAND_COLORS=#FF6B6B,#4ECDC4,#45B7D1
+BRAND_FONTS=Roboto,Arial,Helvetica
 ```
 
-### Configuration
+### Scheduling
 
-Set the following secrets in Cloudflare Workers:
+The worker runs every 6 hours by default. Modify the cron expression in `wrangler.toml`:
 
-```bash
-wrangler secret put POSTIZ_API_KEY
-wrangler secret put FAL_API_KEY
-wrangler secret put FIRECRAWL_API_KEY
-wrangler secret put SITEMAP_URL
-wrangler secret put PINTEREST_BOARD_ID
+```toml
+[triggers]
+crons = ["0 */6 * * *"]  # Every 6 hours
 ```
 
-## Development
+## 🧪 Testing
+
+### Run Tests
 
 ```bash
-# Start local development server
-npm run dev
-
-# Run tests
+# Unit tests
 npm run test
+
+# Integration tests  
+npm run test:integration
+
+# End-to-end tests
+npm run test:e2e
 
 # Type checking
 npm run type-check
+```
 
+### Test Coverage
+
+The test suite aims for >80% coverage and includes:
+
+- **Unit Tests**: Core functions (sitemap parsing, image generation, content optimization)
+- **Integration Tests**: Service interactions and API mocking
+- **E2E Tests**: Full worker functionality with Miniflare
+
+## 🚀 Deployment
+
+### Staging Deployment
+
+```bash
 # Deploy to staging
 npm run deploy:staging
 
+# Set secrets
+wrangler secret put POSTIZ_API_KEY --env staging
+wrangler secret put FAL_API_KEY --env staging
+wrangler secret put FIRECRAWL_API_KEY --env staging
+# ... repeat for all secrets
+```
+
+### Production Deployment
+
+```bash
 # Deploy to production
 npm run deploy:production
+
+# Set production secrets
+wrangler secret put POSTIZ_API_KEY --env production
+# ... repeat for all secrets
 ```
 
 ## How It Works

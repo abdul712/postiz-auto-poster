@@ -1,0 +1,52 @@
+name = "postiz-auto-poster"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[env.staging]
+name = "postiz-auto-poster-staging"
+
+[env.production] 
+name = "postiz-auto-poster-production"
+
+# KV Namespaces
+[[kv_namespaces]]
+binding = "CACHE"
+id = "cache_namespace_id"
+preview_id = "cache_preview_id"
+
+[[kv_namespaces]]
+binding = "PROMPTS"
+id = "prompts_namespace_id"
+preview_id = "prompts_preview_id"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "postiz-auto-poster"
+database_id = "database_id_placeholder"
+
+# Queue
+[[queues]]
+binding = "PROCESSING_QUEUE"
+queue = "postiz-processing-queue"
+
+# R2 Bucket for image storage
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "postiz-images"
+
+# Scheduled triggers - every 6 hours
+[triggers]
+crons = ["0 */6 * * *"]
+
+# Environment-specific overrides
+[env.staging.triggers]
+crons = ["*/15 * * * *"]  # Every 15 minutes for testing
+
+[env.production.triggers]
+crons = ["0 */6 * * *"]  # Every 6 hours for production
+
+# Analytics
+[analytics_engine_datasets]
+binding = "ANALYTICS"
+dataset = "postiz_metrics"

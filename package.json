@@ -1,0 +1,48 @@
+{
+  "name": "postiz-auto-poster",
+  "version": "1.0.0",
+  "description": "An automated Pinterest content scheduling system that scrapes websites via sitemap, generates AI images, and schedules posts through Postiz",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "dev:remote": "wrangler dev --remote",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:integration": "vitest --config vitest.integration.config.ts",
+    "test:e2e": "vitest --config vitest.e2e.config.ts",
+    "db:migrate": "wrangler d1 migrations apply postiz-auto-poster",
+    "db:seed": "wrangler d1 execute postiz-auto-poster --file=./db/seed.sql"
+  },
+  "keywords": [
+    "pinterest",
+    "automation",
+    "cloudflare-workers",
+    "postiz",
+    "ai-images",
+    "content-scheduling"
+  ],
+  "author": "Abdul Rahim",
+  "license": "MIT",
+  "dependencies": {
+    "@postiz/node": "^1.0.0",
+    "hono": "^4.6.11",
+    "zod": "^3.23.8",
+    "date-fns": "^3.6.0",
+    "@fal-ai/serverless-client": "^0.13.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
+    "@cloudflare/vitest-pool-workers": "^0.5.32",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "wrangler": "^3.91.0",
+    "@types/node": "^22.10.2",
+    "miniflare": "^3.20241205.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

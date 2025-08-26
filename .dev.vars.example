@@ -1,0 +1,18 @@
+# Development environment variables
+# Copy this file to .dev.vars and fill in your actual API keys
+
+# Required API Keys
+POSTIZ_API_KEY=your_postiz_api_key_here
+FAL_API_KEY=your_fal_ai_api_key_here  
+FIRECRAWL_API_KEY=your_firecrawl_api_key_here
+
+# Configuration
+SITEMAP_URL=https://example.com/sitemap.xml
+PINTEREST_BOARD_ID=your_pinterest_board_id
+
+# Optional Configuration
+POSTS_PER_DAY=5
+POSTING_HOURS=9,12,15,18,21
+POSTIZ_INSTANCE_URL=https://api.postiz.com
+BRAND_COLORS=#FF6B6B,#4ECDC4,#45B7D1
+BRAND_FONTS=Roboto,Arial,Helvetica
