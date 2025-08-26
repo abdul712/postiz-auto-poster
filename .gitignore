@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+*.lcov
+
+# Production
+build/
+dist/
+out/
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# Cloudflare
+.wrangler/
+.dev.vars
+wrangler.toml.backup
+
+# Database
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.mf/
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
+tmp/
+
+# Misc
+*.pem
+.vercel
