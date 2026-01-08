@@ -2,11 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Status
+
+**Current Phase**: Planning & Documentation (Pre-implementation)
+
+This project is in the planning phase. The documentation describes the intended architecture and implementation, but **no source code has been implemented yet**. The repository currently contains:
+- Documentation (README.md, IMPLEMENTATION_PLAN.md)
+- GitHub Actions workflows for Claude Code integration
+- This guidance file
+
 ## Project Overview
 
-**Postiz Auto-Poster** - An automated Pinterest content scheduling system that scrapes websites via sitemap, generates AI images, and schedules posts through Postiz. Built for Cloudflare Workers with scheduled execution.
+**Postiz Auto-Poster** - An automated Pinterest content scheduling system that will scrape websites via sitemap, generate AI images, and schedule posts through Postiz. Designed for Cloudflare Workers with scheduled execution.
 
-## Architecture
+## Intended Architecture
 
 ### Core Services Architecture
 ```
@@ -15,57 +24,32 @@ Sitemap URL → Scraper (Firecrawl) → Content Processor → Image Generator (f
                                     Cloudflare D1          Cloudflare KV          Cloudflare Queue
 ```
 
-### Key Components
+### Planned Components
 - **Sitemap Processor**: Parses XML sitemaps, extracts URLs, manages processing state
-- **Content Scraper**: Uses Firecrawl MCP for intelligent extraction of titles, descriptions, metadata
+- **Content Scraper**: Uses Firecrawl for intelligent extraction of titles, descriptions, metadata
 - **Image Generator**: Multi-model fal.ai integration for varied output:
   - FLUX.1 dev: Photorealistic images (40% weight)
   - Qwen-Image: Superior text rendering (30% weight)
   - Ideogram V2: Typography & posters (30% weight)
 - **Postiz Scheduler**: Manages post scheduling via Postiz API with rate limiting and retry logic
 
-## Development Commands
+## Repository Structure
 
-```bash
-# Installation
-npm install
-
-# Local development
-npm run dev                  # Start local dev server with Miniflare
-npm run dev:remote          # Connect to remote Cloudflare resources
-
-# Building
-npm run build               # Build for production
-npm run type-check          # TypeScript type checking
-
-# Testing
-npm run test                # Run unit tests
-npm run test:integration    # Run integration tests
-npm run test:e2e           # End-to-end tests
-
-# Deployment
-npm run deploy:staging      # Deploy to staging environment
-npm run deploy:production   # Deploy to production
-wrangler secret put <KEY>   # Set environment secrets
-
-# Database
-npm run db:migrate          # Run D1 migrations
-npm run db:seed            # Seed test data
+### Current Structure (Actual)
+```
+postiz-auto-poster/
+├── .github/
+│   └── workflows/
+│       ├── claude.yml              # Claude Code GitHub Action for @claude mentions
+│       └── claude-code-review.yml  # Automated PR review workflow
+├── .gitignore                      # Standard Node.js/Cloudflare ignores
+├── CLAUDE.md                       # This file - AI assistant guidance
+├── IMPLEMENTATION_PLAN.md          # Detailed technical roadmap
+├── LICENSE                         # MIT License
+└── README.md                       # Project documentation
 ```
 
-## Environment Configuration
-
-Required environment variables (set via `wrangler secret put`):
-```
-POSTIZ_API_KEY          # Postiz API authentication
-FAL_API_KEY            # fal.ai API key for image generation
-FIRECRAWL_API_KEY      # Firecrawl API for web scraping
-SITEMAP_URL            # Target website sitemap
-PINTEREST_BOARD_ID     # Postiz Pinterest board identifier
-```
-
-## File Structure
-
+### Target Structure (To Be Implemented)
 ```
 src/
 ├── index.ts                 # Main Worker entry point & scheduled trigger
@@ -85,6 +69,69 @@ src/
     └── validation.ts       # Zod schemas for data validation
 ```
 
+## Getting Started (For Implementation)
+
+### Prerequisites
+- Node.js 18+
+- npm or pnpm
+- Cloudflare account with Workers enabled
+- Wrangler CLI (`npm install -g wrangler`)
+
+### Initial Setup Steps
+```bash
+# 1. Initialize the project
+npm init -y
+
+# 2. Install dependencies
+npm install hono zod date-fns @fal-ai/serverless-client
+npm install -D @cloudflare/workers-types typescript wrangler vitest
+
+# 3. Create wrangler.toml configuration
+# 4. Set up D1 database and KV namespaces
+# 5. Configure secrets with wrangler secret put
+```
+
+### Planned Development Commands
+```bash
+npm run dev                  # Start local dev server with Miniflare
+npm run dev:remote          # Connect to remote Cloudflare resources
+npm run build               # Build for production
+npm run type-check          # TypeScript type checking
+npm run test                # Run unit tests
+npm run test:integration    # Run integration tests
+npm run deploy:staging      # Deploy to staging environment
+npm run deploy:production   # Deploy to production
+npm run db:migrate          # Run D1 migrations
+```
+
+## Environment Configuration
+
+Required environment variables (set via `wrangler secret put`):
+```
+POSTIZ_API_KEY          # Postiz API authentication
+FAL_API_KEY            # fal.ai API key for image generation
+FIRECRAWL_API_KEY      # Firecrawl API for web scraping
+SITEMAP_URL            # Target website sitemap
+PINTEREST_BOARD_ID     # Postiz Pinterest board identifier
+```
+
+## GitHub Workflows
+
+### Claude Code Action (`claude.yml`)
+Responds to `@claude` mentions in:
+- Issue comments
+- PR review comments
+- Issues (opened/assigned)
+- PR reviews
+
+### Claude Code Review (`claude-code-review.yml`)
+Automatically reviews all new PRs for:
+- Code quality and best practices
+- Potential bugs or issues
+- Performance considerations
+- Security concerns
+- Test coverage
+
 ## Key Technical Decisions
 
 ### Why Cloudflare Workers?
@@ -101,10 +148,12 @@ src/
 - Built-in AI-powered content understanding
 
 ### Image Generation Strategy
-- Multi-model approach for output variety:
-  - FLUX.1 dev: $0.025/megapixel - photorealistic content
-  - Qwen-Image: ~$0.020/megapixel - text-heavy designs
-  - Ideogram V2: ~$0.030/megapixel - typography/posters
+Multi-model approach for output variety:
+- FLUX.1 dev: $0.025/megapixel - photorealistic content
+- Qwen-Image: ~$0.020/megapixel - text-heavy designs
+- Ideogram V2: ~$0.030/megapixel - typography/posters
+
+Features:
 - Weighted random selection with content-based preferences
 - Generate Pinterest-optimized 2:3 aspect ratio (1000x1500px)
 - Cache successful prompts per model for consistency
@@ -116,15 +165,13 @@ src/
 - Distribute posts across optimal Pinterest posting times
 - Maximum 1 post per hour to avoid spam
 
-## API Integration Patterns
+## Implementation Patterns
 
-### Postiz API
+### API Integration - Postiz
 ```typescript
-// Always use the SDK, not direct API calls
-import Postiz from '@postiz/node';
-const postiz = new Postiz(env.POSTIZ_API_KEY);
+// Always use retry logic for external API calls
+import { withRetry } from './utils/retry';
 
-// Schedule posts with retry logic
 await withRetry(() => postiz.post({
   content: description,
   platforms: ['pinterest'],
@@ -133,7 +180,7 @@ await withRetry(() => postiz.post({
 }));
 ```
 
-### fal.ai Image Generation
+### API Integration - fal.ai
 ```typescript
 // Multi-model selection with weighted random
 const models = [
@@ -148,19 +195,13 @@ const selectedModel = selectModelByContent(content) || weightedRandom(models);
 // Generate with model-specific prompts
 const response = await fal.run(selectedModel.id, {
   prompt: generateOptimizedPrompt(content, selectedModel.type),
-  image_size: "portrait_4_5", // Pinterest optimal
+  image_size: "portrait_4_5",
   num_images: 1
 });
-
-// Fallback on failure
-if (!response.success && fallbackModels.length > 0) {
-  return await tryFallbackModel(fallbackModels, content);
-}
 ```
 
-### Firecrawl Scraping
+### API Integration - Firecrawl
 ```typescript
-// Use MCP tool for intelligent extraction
 const scraped = await firecrawl.scrape({
   url: targetUrl,
   formats: ["markdown"],
@@ -168,12 +209,42 @@ const scraped = await firecrawl.scrape({
 });
 ```
 
-## Database Schema
+## Database Schema (D1)
 
-### D1 Tables
-- `processed_urls`: Track scraped URLs and their status
-- `generated_pins`: Store pin metadata and scheduling info
-- `sitemap_state`: Maintain sitemap processing progress
+### Tables
+```sql
+-- Track scraped URLs and their status
+CREATE TABLE processed_urls (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  url TEXT UNIQUE NOT NULL,
+  title TEXT,
+  processed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  pin_id TEXT,
+  status TEXT CHECK(status IN ('pending', 'processed', 'scheduled', 'failed'))
+);
+
+-- Store pin metadata and scheduling info
+CREATE TABLE generated_pins (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_url TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  image_url TEXT,
+  postiz_id TEXT,
+  scheduled_for DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  status TEXT CHECK(status IN ('draft', 'scheduled', 'published', 'failed'))
+);
+
+-- Maintain sitemap processing progress
+CREATE TABLE sitemap_state (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sitemap_url TEXT UNIQUE NOT NULL,
+  last_processed DATETIME,
+  total_urls INTEGER,
+  processed_urls INTEGER
+);
+```
 
 ### KV Namespaces
 - `CACHE`: Temporary storage for API responses
@@ -200,47 +271,25 @@ const scraped = await firecrawl.scrape({
 - Cache expensive operations in KV
 - Implement progressive processing (state saving)
 
-## Testing Approach
-
-### Unit Tests
-Focus on pure functions: prompt generation, content parsing, scheduling logic
-
-### Integration Tests
-Mock external APIs, test service interactions
-
-### E2E Tests
-Use Miniflare for local Worker environment simulation
-
-## Deployment Pipeline
-
-1. **Local Development**: Miniflare emulation
-2. **Staging**: Separate Cloudflare account/zone
-3. **Production**: Main Cloudflare Workers deployment
-
-### Monitoring
-- Cloudflare Analytics for performance metrics
-- Logflare/Baselime for structured logging
-- Custom KV metrics for business logic
-
 ## Model-Specific Implementation Notes
 
-### Qwen-Image Optimizations
+### FLUX.1 Dev
+- Best for product photography pins
+- Excellent for lifestyle and scenery backgrounds
+- Use detailed prompts for best results
+- Add "8k resolution, professional photography" to prompts
+
+### Qwen-Image
 - Best for pins with quotes, tips, or lists
 - Excels at maintaining font consistency in edits
 - Supports nuanced art style specifications
 - Use for "how-to" infographics with text steps
 
-### Ideogram V2 Optimizations
+### Ideogram V2
 - Ideal for logo-style pins and brand content
 - Superior typography handling for titles
 - Best for poster-style layouts
 - Use "auto" style parameter for balanced output
-
-### FLUX.1 Dev Optimizations
-- Best for product photography pins
-- Excellent for lifestyle and scenery backgrounds
-- Use detailed prompts for best results
-- Add "8k resolution, professional photography" to prompts
 
 ### Model Rotation Strategy
 ```typescript
@@ -260,22 +309,30 @@ function selectNextModel() {
 }
 ```
 
-## Common Tasks
+## Wrangler Configuration
 
-### Adding a New Scraping Source
-1. Extend `src/services/scraper.ts` with new extraction rules
-2. Update content validation schema in `src/schemas/validation.ts`
-3. Add source-specific tests
+### wrangler.toml Template
+```toml
+name = "postiz-auto-poster"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
 
-### Modifying Image Generation
-1. Update prompts in `src/services/imageGenerator.ts`
-2. Test with different content types
-3. Monitor fal.ai costs in dashboard
+[[kv_namespaces]]
+binding = "CACHE"
+id = "your_kv_id"
 
-### Adjusting Posting Schedule
-1. Modify cron expression in `wrangler.toml`
-2. Update distribution logic in `src/services/scheduler.ts`
-3. Consider timezone implications
+[[kv_namespaces]]
+binding = "PROMPTS"
+id = "your_prompts_kv_id"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "postiz-auto-poster"
+database_id = "your_db_id"
+
+[triggers]
+crons = ["0 */6 * * *"]
+```
 
 ## Security Notes
 
@@ -292,16 +349,44 @@ function selectNextModel() {
 - Monitor KV operations in Cloudflare dashboard
 - Test cron triggers with `wrangler dev --test-scheduled`
 
-## Important Patterns
+## AI Assistant Guidelines
 
-### State Management
-Always save processing state to D1 between operations to handle Worker restarts gracefully.
+When helping implement this project:
 
-### Retry Logic
-Use exponential backoff for all external API calls with jitter to avoid thundering herd.
+1. **Follow the implementation plan** in `IMPLEMENTATION_PLAN.md` for phased development
+2. **Start with infrastructure**: package.json, wrangler.toml, TypeScript config
+3. **Implement services incrementally**: sitemap → scraper → image generator → scheduler
+4. **Use TypeScript strict mode** and Zod for runtime validation
+5. **Write tests alongside code** using Vitest
+6. **Keep Worker CPU limits in mind** - batch and queue appropriately
+7. **Use the established patterns** for retry logic and error handling
 
-### Queue Processing
-Leverage Cloudflare Queues for operations that might exceed Worker time limits.
+### Priority Order for Implementation
+1. Project setup (package.json, tsconfig.json, wrangler.toml)
+2. Type definitions and schemas
+3. Utility functions (storage, retry, queue)
+4. Core services (sitemap, scraper)
+5. Image generation service
+6. Pinterest optimization
+7. Scheduler and main Worker entry point
+8. Tests and documentation
 
-### Content Validation
-Validate scraped content quality before expensive operations like image generation.
+## Cost Estimation
+
+### Monthly Costs (1000 images/month)
+- Cloudflare Workers: Free tier (100k requests/day)
+- Cloudflare KV: Free tier (100k reads/day)
+- Cloudflare D1: Free tier (5GB storage)
+- fal.ai: ~$75/month (mixed models)
+- Firecrawl: ~$50/month
+- Postiz: Based on subscription
+
+**Total**: ~$125-200/month depending on volume
+
+## References
+
+- [Implementation Plan](./IMPLEMENTATION_PLAN.md) - Detailed technical roadmap
+- [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
+- [fal.ai Documentation](https://fal.ai/docs)
+- [Postiz API](https://docs.postiz.com/)
+- [Firecrawl Docs](https://docs.firecrawl.dev/)
